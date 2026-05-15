@@ -167,3 +167,13 @@ cython_debug/
 
 introcd/
 .introcd/
+
+
+# latex
+*.aux
+*.lof
+*.fdb_latexmk
+*.fls
+*.out
+*.synctex.gz
+*.toc
