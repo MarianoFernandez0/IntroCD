@@ -9,5 +9,6 @@ Este repositorio contiene las letras y notebooks de las tareas propuestas para l
 
 # Setup
 
-1.  `uv sync`
-2.  `source .venv/bin/activate`
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation) 
+2. `uv sync`
+3. `source .venv/bin/activate`
