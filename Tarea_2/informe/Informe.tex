@@ -40,7 +40,9 @@ Este informe presenta los resultados y el análisis correspondientes a la Tarea 
 curso \textit{Introducción a la Ciencia de Datos}. Esta tarea es la continuación de 
 la Tarea 1, donde se utiliza el mismo dataset \textit{All the News 2.1 – Component One}.
 El dataset contiene artículos en inglés de distintos medios de prensa, con información 
-como el título, cuerpo del artículo, fecha de publicación y medio de prensa.
+como el título, cuerpo del artículo, fecha de publicación y medio de prensa. 
+La implementación de esta tarea se encuentra en el repositorio de GitHub 
+\href{https://github.com/MarianoFernandez0/IntroCD}{https://github.com/MarianoFernandez0/IntroCD}.
 
 
 \section{Dataset y representación numérica de texto}
@@ -53,7 +55,8 @@ Luego se aplicó la función \texttt{clean\_text} (visto en la Tarea 1) sobre la
 del cuerpo del artículo con el objetivo de estandarizar el texto.
 
 Los conjuntos de Train y Test se generaron utilizando una partición estratificada, 
-con un tamaño de test del 30\% y una semilla de 42 para garantizar la reproducibilidad. 
+asignando un 30\% de los datos al conjunto de Test y un 70\% al conjunto de Train, 
+se utilizó una semilla de 42 para garantizar la reproducibilidad. 
 El resultado es de 10425 artículos para entrenamiento y 4469 para prueba, manteniendo 
 la proporción de las clases en ambos conjuntos.
 
@@ -78,7 +81,7 @@ Para poder entrenar un modelo de clasificación sobre datos de texto es necesari
 a una representación numérica que pueda ser procesada por dichos algoritmos. 
 Un posible método es \textit{Bag of Words} (BoW), que consiste en primero definir 
 el vocabulario del conjunto de entrenamiento, es decir, todas las palabras únicas que aparecen 
-en él. Luego, cada artículo se representa como un vector de longitud igual al tamaño del 
+en él. Luego, cada artículo se representa por un vector de longitud igual al tamaño del 
 vocabulario, donde cada posición indica la cantidad de veces que la palabra correspondiente 
 aparece en el texto. El resultado es una matriz de N × M, donde N es el número de artículos 
 y M es el tamaño del vocabulario. 
@@ -89,7 +92,7 @@ Por ejemplo, si el conjunto de datos es:
     "london aug 8 reuters"
 \end{verbatim}
 El vocabulario sería: \texttt{["london", "reuters", "the", "world", "aug", "8"]} 
-y la representación BoW de cada artículo sería 
+y la representación BoW de cada artículo sería:
 \begin{verbatim}
     [1, 1, 1, 1, 0, 0]
     [1, 1, 0, 0, 1, 1]
@@ -137,11 +140,11 @@ por un factor que penaliza las palabras que aparecen en muchos artículos (IDF).
 En este estudio se utiliza la implementación de la librería Scikit-learn, que es una 
 variante de la definición anterior. En particular se agrega un suavizado a la definición 
 de IDF para evitar valores extremos para palabras muy poco comunes y que términos 
-presentes en todos los documentos no tengan multiplicador nulo:
+presentes en todos los documentos no tengan IDF nulo:
 \begin{itemize}
     \item $\text{IDF} = \log \frac{1+N}{1+n} + 1$
 \end{itemize}
-Además en lugar de normalizar TF por el total de palabras, se utiliza la 
+Además en lugar de normalizar TF por el total de palabras del documento, se utiliza la 
 norma L2 sobre el vector resultante, de forma de que todos los vectores tengan norma 1. 
 
 \subsection{PCA sobre TF-IDF}
@@ -184,7 +187,8 @@ artículos de tipo \textit{BRIEF}, además la separación parece estar más marc
 probablemente por el peso del largo de los artículos. Por otro lado, una posible explicación del 
 overlap entre \textit{Reuters} y \textit{CNBC} que también se observa en todos los casos 
 puede ser lo visto en la Tarea 1, donde se concluyó que muchos artículos de \textit{CNBC} 
-son realmente artículos de \textit{Reuters}. 
+son realmente artículos de \textit{Reuters}, pero eso no lo puede explicar por completo, ya que de 
+ser así se podría ver un subconjunto de artículos de \textit{CNBC} que se separa del resto.
 Para confirmar estas hipótesis sería interesante agregar los filtros propuestos en el informe
 de la Tarea 1 y ver si los resultados de PCA cambian.
 
@@ -194,9 +198,10 @@ considera que aplicar este filtro resulta en que los artículos estén represent
 más relevantes y diferentes entre medios, lo que resulta en features más separables.
 Por otro lado agregar bigramas (figura \ref{fig:pca_c}) no parece tener un gran efecto en la 
 separación de los clusters aunque es importante notar que usar n-gramas aumenta la dimensionalidad del
-problema mientras que PCA lo reduce a las 2 componentes principales.
+problema mientras que esta proyección reduce la dimensionalidad a solo 2, puede ser que sea necesario 
+un espacio de mayor dimensión para que se vea el efecto de los bigramas.
 Como ya se vio, quitar la ponderación IDF (figura \ref{fig:pca_d}) parece dejar un subconjunto de 
-artículos de \textit{Reuters} muy separado del resto, pero parece empeorar la separación de los otros 
+artículos de \textit{Reuters} más separado del resto, pero parece empeorar la separación de los otros 
 clusters.
 
 \begin{figure}[h]
@@ -245,7 +250,10 @@ en el conjunto de prueba donde se obtiene un accuracy del 70.13\%. Esto quiere
 decir que el modelo es capaz de clasificar correctamente el 70\% de los artículos
 del conjunto de test, el problema es que este número puede ocultar problemas con
 el modelo, por ejemplo como se vio anteriormente \textit{Reuters} predomina en el dataset por 
-lo que también va a tener un peso más grande en el cálculo del accuracy.
+lo que también va a tener un peso más grande en el cálculo del accuracy, si el modelo prediciera
+siempre \textit{Reuters} ya obtendría un 63\% de acccuracy.
+
+
 Para tener una mejor visión del desempeño del modelo, en la figura \ref{fig:confusion_matrix} 
 se muestra la matriz de confusión en el conjunto de prueba que se acompaña con la tabla de 
 métricas \ref{tab:metrics_nb}, como era de esperarse el modelo tiende a clasificar un artículo
@@ -286,9 +294,11 @@ visualización de PCA \ref{fig:pca_tfidf}.
 Hasta el momento se entrenó solo un modelo sin modificar los parámetros predeterminados pero una 
 parte importante del entrenamiento es la búsqueda de hiperparámetros del modelo, que pueden afectar
 considerablemente el desempeño final. Una consideración clave a tener es que no se puede usar el 
-mismo conjunto de test para esta búsqueda de hiperparámetros porque podría pasar que estemos 
-sobreajustando a ese conjunto pero no represente la realidad del problema. Para solucionar este
+mismo conjunto de test para esta búsqueda porque podría llevar a un sobreajuste en este conjunto
+y las métricas de desempeño no representen la realidad del problema. Para solucionar este
 problema se suelen usar dos estrategias: 
+
+
 En lugar de solo particionar el conjunto en entrenamiento y prueba, se vuelve a particionar el 
 conjunto de entrenamiento para obtener el conjunto de validación, este es similar al conjunto 
 de Test que se usa para comparar diferentes configuraciones del modelo (hiperparámetros) y luego 
@@ -296,11 +306,11 @@ de obtener la mejor se evalúa en el conjunto de prueba para obtener una estimac
 del modelo. El problema con esa estrategia es que se reduce mucho la cantidad de datos de 
 entrenamiento y los mejores hiperparámetros elegidos dependen mucho del split realizado, por esto 
 otra estrategia muy utilizada es validación cruzada donde se repite N veces la estrategia anterior. 
-Se generan N splits, de forma de los N conjuntos de validación resultante no tengan overlap y la 
+Se generan N splits, de forma de los N conjuntos de validación resultantes no tengan overlap y la 
 suma de todos cubra todo el conjunto de train, luego para cada configuración se repite el 
 entrenamiento en cada uno de los N splits y se reportan los resultados finales en cada partición. 
-Como paso final se elige la configuración que obtuvo el mejor desempeño promedio en los N splits 
-y se entrena un modelo final con esa configuración utilizando todo el conjunto de entrenamiento.
+Como paso final se eligen los hiperparámetros que obtuvieron el mejor desempeño promedio en los N splits 
+y se entrena un modelo con ellos, utilizando todo el conjunto de entrenamiento.
 
 En la figura \ref{fig:grid_search_results} se muestra el resultado de la búsqueda de hiperparámetros
 realizada para el modelo Multinomial Naive Bayes, para todas las combinaciones de los siguientes
@@ -328,7 +338,7 @@ de train obteniendo un accuracy de 80.47\% en el conjunto de Test, lo que signif
 de +10 puntos sobre usar los hiperparámetros predeterminados. Además viendo la matriz de 
 confusión de la figura \ref{fig:confusion_matrix_best} y las métricas de Precision y Recall 
 por medio de la tabla \ref{tab:metrics_best_nb} este modelo ya no presenta tanto el problema de 
-clasificar todos los artículos como \textit{Reuters}. El problema que se mantiene es el Recall de 
+clasificar todos los artículos como \textit{Reuters}. El problema que se mantiene es que el Recall de 
 \textit{CNBC} aún es muy bajo, 30\%, lo que refuerza la hipótesis que muchos artículos 
 de \textit{CNBC} no son separables de los de \textit{Reuters}.
 
@@ -360,11 +370,14 @@ Como modelo alternativo a Multinomial Naive Bayes se decidió entrenar un modelo
 que es un modelo de clasificación basado en árboles de decisión. En resumen, en lugar de entrenar
 un solo árbol de decisión, se entrenan varios árboles, haciendo modificaciones aleatorias en los 
 datos de entrenamiento de cada uno y en las features que se utilizan para cada árbol para asegurar
-que cada árbol sea diferente. Luego al momento de clasificar un artículo se hace una votación para
-obtener la predicción final. El uso de Random Forest en lugar de un solo árbol de decisión tiene 
+que cada uno sea diferente. Luego al momento de clasificar un artículo se hace una votación para
+obtener la predicción final. 
+
+El uso de Random Forest en lugar de un solo árbol de decisión tiene 
 varias ventajas, principalmente suele generalizar mejor ya que un problema de los árboles de decisión 
 es que tienden a sobreajustar a los datos de entrenamiento, una pequeña modificación en los datos de 
 entrenamiento puede causar grandes cambios en el modelo. 
+
 El modelo se entrenó con los hiperparámetros predeterminados, obteniendo un accuracy de 83.11\% en 
 el conjunto de prueba, este resultado ya es mejor que el mejor modelo Naive Bayes con hiperparámetros 
 optimizados. 
@@ -380,17 +393,18 @@ con la mayoría de los artículos clasificados como \textit{Reuters}.
 
 \subsection{Cambio de medio de prensa}
 
-Como gran parte de los problemas vistos en este informe surgen por el desbalance que presentan
-la cantidad de artículos de \textit{Reuters} o un problema en los datos que causa que \textit{CNBC} no 
-sea separable de \textit{Reuters}, se optó por un subconjunto alternativo. 
-Se seleccionaron los top 3 medios de prensa del dataset, descartando \textit{Reuters}, obteniendo los
+Como gran parte de los problemas vistos en este informe surgen por el desbalance causado por el número de artículos 
+de  \textit{Reuters} o un problema en la clasificación de los datos de \textit{CNBC} vs \textit{Reuters}, 
+se consideró interesante elegir un subconjunto alternativo del dataset que no contenga \textit{Reuters}.
+
+Se seleccionaron los top 3 medios de prensa del dataset (descartando \textit{Reuters}), obteniendo los
 siguientes medios: \textit{The New York Times}, \textit{CNBC} y \textit{The Hill}.
 En la figura \ref{fig:class_distribution2} se puede observar como la distribución de clases es 
 mucho más pareja que en el conjunto original representado por la figura \ref{fig:class_distribution}.
 
 El nuevo conjunto de datos parece definir una tarea más fácil para el modelo, una posible razón es que
 al eliminar \textit{Reuters} se reduce bastante el ruido en los datos. El modelo Multinomial Naive Bayes,
-entrenado con los hiperparámetros predeterminados obtuvo un accuracy de 87\% en el conjunto de prueba. 
+entrenado con los hiperparámetros predeterminados, obtuvo un accuracy de 87\% en el conjunto de prueba. 
 Además en la matriz de confusión \ref{fig:confusion_matrix_nb_change} se puede ver un buen desempeño,
 sobre todo al separar \textit{The New York Times} y \textit{The Hill}, esto puede ser la diferencia temática
 de los medios. Por otro lado todavía se puede ver que gran parte de los artículos de \textit{CNBC} se siguen clasificando
@@ -413,18 +427,19 @@ erróneamente, en este caso la mayoría de los errores son porque el modelo pred
 \subsection{Extracción de features alternativa}
 
 La representación TF-IDF mantiene más información que utilizando BoW, pero aún así se 
-pierde información importante del texto. Un método alternativo es utilizar un método que genere
+pierde información importante del texto. Una solución alternativa es utilizar un método que genere
 embeddings de palabras, estos suelen ser vectores de mucho menor dimensión que la representación 
 TF-IDF y se entrenan para capturar relaciones semánticas entre palabras. Es decir dos embeddings
 de palabras que tengan un significado similar van a estar más cerca en el espacio de embeddings.
+
 Un algoritmo muy utilizado para generar embeddings en tareas de texto es Word2Vec, que se entrena 
 con un corpus de texto y genera un embedding para cada palabra.
 
 Aplicar Word2Vec sobre el dataset agrega una complejidad extra al problema, ya que ahora para
-cada artículo se tiene una secuencia de embeddings de palabras, en lugar de un vector de largo fijo.
-Para poder entrenar los mismos modelos de clasificación que antes, es necesario agregar una etapa 
-que lleve estas secuencias de embeddings a un vector de largo fijo, una forma sería promediar
-todos los embeddings de palabras del artículo para obtener un único vector de features.
+cada artículo se obtiene una secuencia de embeddings de palabras, en lugar de un vector de largo fijo.
+Entonces, para poder entrenar los mismos modelos de clasificación que antes es necesario agregar una etapa 
+que lleve estas secuencias de embeddings a un vector de largo fijo. Una forma sería promediar
+todos los embeddings de palabras del artículo, para obtener un único vector de features.
 
 Otro enfoque que puede llegar a mejores resultados es utilizar un modelo que tome secuencias 
 de largo variable como entrada, como por ejemplo una red neuronal recurrente (RNN) o un modelo
@@ -435,11 +450,13 @@ para generalizar bien, pero pueden hacer un mejor uso de toda la información de
 
 Otro experimento interesante es ver si es posible clasificar el artículo utilizando sólo el título,
 es de esperar un desempeño peor que usando todo el cuerpo del artículo ya que la cantidad de 
-información es mucho menor. A pesar de esto entrenando un modelo Multinomial Naive Bayes, con los 
-hiperparámetros predeterminados se obtuvo un 70\% de accuracy en el conjunto de prueba. Esto se puede 
-explicar por varias razones, en parte por el desbalance en las clases que ya se vio, por cómo
-se calcula la métrica de accuracy si el modelo tiende a predecir \textit{Reuters} la métrica da mejor, esto 
-además es respaldado por la matriz de confusión \ref{fig:confusion_matrix_title} donde se ve que la mayoría de
+información es mucho menor. 
+
+A pesar de esto, entrenando un modelo Multinomial Naive Bayes con los 
+hiperparámetros predeterminados se obtuvo un 70\% de accuracy en el conjunto de prueba. Esto se podría explicar
+en parte por el desbalance en las clases que ya se vio, dado que por cómo se calcula la métrica de accuracy si 
+el modelo tiende a predecir \textit{Reuters} la métrica da mejor. 
+Esto además es respaldado por la matriz de confusión \ref{fig:confusion_matrix_title} donde se ve que la mayoría de
 los artículos son clasificados como \textit{Reuters}.
 
 \begin{figure}
